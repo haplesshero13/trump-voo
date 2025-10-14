@@ -1,0 +1,5 @@
+title: Fine Tuning BERT on Trump Socials
+author: Avery Yen
+execute:
+  execute_notebooks: "off"
+exclude_patterns: [".venv", "_build"]

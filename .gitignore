@@ -227,3 +227,6 @@ __marimo__/
 wandb
 bert-trump-tweet-voo*
 results*
+
+# Notebook
+_build
