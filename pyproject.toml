@@ -18,3 +18,8 @@ dependencies = [
     "wandb>=0.22.2",
     "yfinance>=0.2.66",
 ]
+
+[dependency-groups]
+dev = [
+    "jupyter-book>=1.0.4.post1",
+]
