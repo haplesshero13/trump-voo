@@ -35,7 +35,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: "_build/html"
+        path: "_build/_page/test_model/singlehtml"
 
     # Deploy the book's HTML to GitHub Pages
     - name: Deploy to GitHub Pages
