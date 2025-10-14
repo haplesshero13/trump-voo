@@ -226,6 +226,7 @@ __marimo__/
 # Training Results
 wandb
 bert-trump-tweet-voo*
+modernbert-trump-tweet-voo*
 results*
 
 # Notebook
