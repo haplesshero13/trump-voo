@@ -1,4 +1,4 @@
 format: jb-book
 root: README
 chapters:
-- file: model_test
+  - file: test_model
