@@ -1,2 +1,4 @@
 format: jb-book
-root: model_test.ipynb
+root: README
+chapters:
+- file: model_test.ipynb
