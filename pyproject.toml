@@ -20,6 +20,9 @@ dependencies = [
     "yfinance>=0.2.66",
 ]
 
+[tool.uv.extra-build-dependencies]
+flash-attn = ["torch"]
+
 [dependency-groups]
 dev = [
     "jupyter-book>=1.0.4.post1",
