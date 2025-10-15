@@ -2,3 +2,5 @@ format: jb-book
 root: README
 chapters:
   - file: test_model
+  - url: https://averyyen.dev
+    title: Back to Main Page
