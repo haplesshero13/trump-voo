@@ -3,19 +3,23 @@ import polars as pl
 import numpy as np
 
 from sklearn.utils.class_weight import compute_class_weight
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, TrainingArguments, Trainer
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    TrainingArguments,
+    Trainer,
+)
 from datasets import Dataset
 
-MODEL_NAME = 'answerdotai/ModernBERT-base'
-MAX_LENGTH = 8192 # Increased to ModernBERT's 8k context window
+MODEL_NAME = "answerdotai/ModernBERT-base"
+MAX_LENGTH = 8192  # Increased to ModernBERT's 8k context window
 
-# You may be able to increase this slightly depending on your GPU VRAM.
-TRAIN_BATCH_SIZE = 2
-EVAL_BATCH_SIZE = 4
+TRAIN_BATCH_SIZE = 128
+EVAL_BATCH_SIZE = 256
 
-OUTPUT_DIR = "./results-modernbert"
-RUN_NAME = "modernbert-trump-tweet-voo"
-FINAL_MODEL_PATH = "./modernbert-trump-tweet-voo"
+OUTPUT_DIR = f"./results-modernbert-{TRAIN_BATCH_SIZE}"
+RUN_NAME = f"modernbert-trump-tweet-voo-{TRAIN_BATCH_SIZE}"
+FINAL_MODEL_PATH = f"./modernbert-trump-tweet-voo-{TRAIN_BATCH_SIZE}"
 
 data_path = "labeled_dataset.arrow"
 
@@ -31,9 +35,11 @@ except FileNotFoundError:
 print("Tokenizing and splitting dataset...")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
+
 def tokenize_function(examples):
     # Truncate to the model's max supported length.
     return tokenizer(examples["text"], truncation=True, max_length=MAX_LENGTH)
+
 
 full_dataset = Dataset.from_polars(labeled_dataset_pl)
 tokenized_datasets = full_dataset.map(tokenize_function, batched=True)
@@ -47,15 +53,15 @@ print("Calculating class weights for unbalanced data...")
 id2label = {0: "BEARISH", 1: "NEUTRAL", 2: "BULLISH"}
 label2id = {"BEARISH": 0, "NEUTRAL": 1, "BULLISH": 2}
 
-train_labels = np.array(dataset['train']['label'])
+train_labels = np.array(dataset["train"]["label"])
 class_weights = compute_class_weight(
-    class_weight='balanced',
-    classes=np.unique(train_labels),
-    y=train_labels
+    class_weight="balanced", classes=np.unique(train_labels), y=train_labels
 )
 
 weights_tensor = torch.tensor(class_weights, dtype=torch.float)
-print(f"Using Class Weights: BEARISH={weights_tensor[0]:.2f}, NEUTRAL={weights_tensor[1]:.2f}, BULLISH={weights_tensor[2]:.2f}")
+print(
+    f"Using Class Weights: BEARISH={weights_tensor[0]:.2f}, NEUTRAL={weights_tensor[1]:.2f}, BULLISH={weights_tensor[2]:.2f}"
+)
 
 
 class WeightedLossTrainer(Trainer):
@@ -68,15 +74,14 @@ class WeightedLossTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
-
 print(f"Loading '{MODEL_NAME}' model with Flash Attention 2...")
 model = AutoModelForSequenceClassification.from_pretrained(
     MODEL_NAME,
     num_labels=3,
     id2label=id2label,
     label2id=label2id,
-    attn_implementation="flash_attention_2", # Use Flash Attention 2
-    dtype=torch.bfloat16                     # Recommended for performance
+    attn_implementation="flash_attention_2",  # Use Flash Attention 2
+    dtype=torch.bfloat16,  # Recommended for performance
 )
 
 
@@ -85,13 +90,10 @@ training_args = TrainingArguments(
     run_name=RUN_NAME,
     per_device_train_batch_size=TRAIN_BATCH_SIZE,
     per_device_eval_batch_size=EVAL_BATCH_SIZE,
-
     # gradient_accumulation_steps=4,
-
-    learning_rate=2e-5,
-    num_train_epochs=3,
+    learning_rate=3e-5,
+    num_train_epochs=5,
     weight_decay=0.01,
-
     logging_strategy="steps",
     logging_steps=50,
     save_strategy="steps",
@@ -99,10 +101,8 @@ training_args = TrainingArguments(
     eval_strategy="steps",
     eval_steps=500,
     load_best_model_at_end=True,
-
     # Use bfloat16 for mixed-precision training, which works well with Flash Attention
     bf16=True,
-
     report_to="wandb",
 )
 
@@ -110,8 +110,8 @@ training_args = TrainingArguments(
 trainer = WeightedLossTrainer(
     model=model,
     args=training_args,
-    train_dataset=dataset['train'],
-    eval_dataset=dataset['test'],
+    train_dataset=dataset["train"],
+    eval_dataset=dataset["test"],
     processing_class=tokenizer,
 )
 
