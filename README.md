@@ -2,6 +2,8 @@
 
 We fine tuned BERT on Trump Socials to Buy/Sell S&P 500. It did... pretty ok?
 
+But more importantly, we wanted to find out what it learned.
+
 ## Methods
 
 1.  Collected historical social media posts (tweets from 2017-2021) from Term 1.
