@@ -1,7 +1,12 @@
 import os
 import polars as pl
 from sklearn.utils.class_weight import compute_class_weight
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, TrainingArguments, Trainer
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    TrainingArguments,
+    Trainer,
+)
 from datasets import Dataset
 import torch
 import numpy as np
@@ -18,10 +23,13 @@ except FileNotFoundError:
     exit()
 
 print("Tokenizing and splitting dataset...")
-tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
+MODEL_NAME = "ProsusAI/finbert"  # 'distilbert-base-uncased'
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+
 
 def tokenize_function(examples):
     return tokenizer(examples["text"], padding="max_length", truncation=True)
+
 
 full_dataset = Dataset.from_polars(labeled_dataset_pl)
 tokenized_datasets = full_dataset.map(tokenize_function, batched=True)
@@ -35,16 +43,16 @@ print("Calculating class weights for unbalanced data...")
 id2label = {0: "BEARISH", 1: "NEUTRAL", 2: "BULLISH"}
 label2id = {"BEARISH": 0, "NEUTRAL": 1, "BULLISH": 2}
 
-train_labels = np.array(dataset['train']['label'])
+train_labels = np.array(dataset["train"]["label"])
 class_weights = compute_class_weight(
-    class_weight='balanced',
-    classes=np.unique(train_labels),
-    y=train_labels
+    class_weight="balanced", classes=np.unique(train_labels), y=train_labels
 )
 
 # Note: When using torchrun, the trainer handles moving tensors to the correct device
 weights_tensor = torch.tensor(class_weights, dtype=torch.float)
-print(f"Using Class Weights: BEARISH={weights_tensor[0]:.2f}, NEUTRAL={weights_tensor[1]:.2f}, BULLISH={weights_tensor[2]:.2f}")
+print(
+    f"Using Class Weights: BEARISH={weights_tensor[0]:.2f}, NEUTRAL={weights_tensor[1]:.2f}, BULLISH={weights_tensor[2]:.2f}"
+)
 
 
 class WeightedLossTrainer(Trainer):
@@ -59,27 +67,25 @@ class WeightedLossTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
-
-print("Loading 'distilbert-base-uncased' model...")
+print(f"Loading {MODEL_NAME} model...")
 model = AutoModelForSequenceClassification.from_pretrained(
-    'distilbert-base-uncased',
+    MODEL_NAME,
     num_labels=3,
     id2label=id2label,
-    label2id=label2id
+    label2id=label2id,
 )
 
 
 training_args = TrainingArguments(
-    output_dir="./results-multi-gpu",
-    run_name="distilbert-trump-multi-gpu-v1",
-
-    per_device_train_batch_size=32,
-    per_device_eval_batch_size=64,
-    
+    output_dir="./results-finbert-v1",
+    run_name="finbert-trump-tweet-voo",
+    per_device_train_batch_size=16,
+    per_device_eval_batch_size=32,
     learning_rate=2e-5,
     num_train_epochs=3,
+    warmup_ratio=0.1,
+    lr_scheduler_type="cosine",
     weight_decay=0.01,
-    
     logging_strategy="steps",
     logging_steps=250,
     save_strategy="steps",
@@ -87,7 +93,6 @@ training_args = TrainingArguments(
     eval_strategy="steps",
     eval_steps=500,
     load_best_model_at_end=True,
-    
     report_to="wandb",
 )
 
@@ -95,9 +100,9 @@ training_args = TrainingArguments(
 trainer = WeightedLossTrainer(
     model=model,
     args=training_args,
-    train_dataset=dataset['train'],
-    eval_dataset=dataset['test'],
-    tokenizer=tokenizer,
+    train_dataset=dataset["train"],
+    eval_dataset=dataset["test"],
+    processing_class=tokenizer,
 )
 
 print("Starting model training...")
@@ -109,4 +114,3 @@ if trainer.is_world_process_zero():
     print(f"Training complete. Saving best model to '{final_model_path}'...")
     trainer.save_model(final_model_path)
     print("✅ Done.")
-
