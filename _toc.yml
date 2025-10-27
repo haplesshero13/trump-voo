@@ -1,6 +1,7 @@
 format: jb-book
 root: README
 chapters:
-  - file: test_model
+  - file: test_distil
+  - file: test_modern
   - url: https://averyyen.dev
-    title: Back to Main Page
+    title: Back to Home Page

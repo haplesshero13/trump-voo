@@ -10,6 +10,8 @@ The results raised more questions than they answered! I encourage you to dig int
 
 ## Approach
 
+Use the `./prepare.py` and `./train_[model].py` scripts to recreate our results. I recommend `torchrun` for training (so you can specify multiple GPUs).
+
 ### Data
 - Training: Trump tweets from 2017-2021, labeled with next-day VOO returns (Bullish/Bearish/Neutral)
 - Testing: Trump Truth Social posts from H1 2025 (completely out-of-sample, 4+ year gap, different platform)
@@ -23,6 +25,7 @@ The results raised more questions than they answered! I encourage you to dig int
 Encoder models are designed for classification tasks and process entire inputs bidirectionally. They're faster and more efficient than decoder-only models (GPT-style) for prediction tasks like this, also allowing us to run many experiments quockly. ModernBERT specifically claims state-of-the-art performance on classification benchmarks, so we really wanted to see how well they'd do.
 
 ### Financial Backtesting
+
 Used predicted labels to generate trading signals (Bullish = enter position, Bearish = exit, Neutral = hold), simulated with realistic 0.1% transaction fees using vectorbt.
 
 ## Results

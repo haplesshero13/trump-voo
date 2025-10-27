@@ -4,3 +4,5 @@ copyright: "2025"
 execute:
   execute_notebooks: "off"
 exclude_patterns: [".venv", "_build"]
+repository:
+  url: https://github.com/haplesshero13/trump-voo
